@@ -31,6 +31,9 @@ Mini_routerAudioProcessorEditor::Mini_routerAudioProcessorEditor (Mini_routerAud
 	btn.setName("ok");
 	btn.setButtonText("Hello Byuttno");
 	btn.addListener(this);
+	
+	
+
 	volumeSlider.setRange(0.0, 127.0);
 	channelSlider.setRange(0.0, 9.0, 1.0);
 	
@@ -38,6 +41,14 @@ Mini_routerAudioProcessorEditor::Mini_routerAudioProcessorEditor (Mini_routerAud
 
 	textLabel.setText("Init", NotificationType::dontSendNotification);
 	textLabel.addListener(this);
+
+	throughput.setName("throughput");
+	throughput.setButtonText("Throuhgput");
+	throughputGain.setRange(0, 127, 0);
+	throughputGain.setSliderStyle(Slider::Rotary);
+	throughputGain.setTextBoxStyle(Slider::TextBoxLeft, false, 80, 20);
+	throughputGain.addListener(this);
+	throughput.addListener(this);
 
 	chan23Toggle.setButtonText(TRANS("Channel 2/3"));
 	chan23Toggle.addListener(this);
@@ -60,7 +71,8 @@ Mini_routerAudioProcessorEditor::Mini_routerAudioProcessorEditor (Mini_routerAud
 	chan67Gain.setTextBoxStyle(Slider::TextBoxLeft, false, 80, 20);
 	chan67Gain.addListener(this);
 
-
+	addAndMakeVisible(&throughput);
+	addAndMakeVisible(&throughputGain);
 	addAndMakeVisible(&chan23Gain);
 	addAndMakeVisible(&chan23Toggle);
 	addAndMakeVisible(&chan45Gain);
@@ -77,7 +89,7 @@ Mini_routerAudioProcessorEditor::Mini_routerAudioProcessorEditor (Mini_routerAud
 	//Time::waitForMillisecondCounter(time_0 + 250);
 
 	std::cout << "Created Editor" << std::endl;
-	//thr.startThread();
+	thr.startThread();
 
 		
 }
@@ -109,10 +121,13 @@ void Mini_routerAudioProcessorEditor::resized()
 	textLabel.setBounds(20, 200, 120, 60);
 	channelSlider.setBounds(100, 150, 400, 100);
 
+	
+	throughputGain.setBounds(10 + 70, 110 + 50, 64, 48);
 	chan23Gain.setBounds(10, 0, 64, 48);
 	chan45Gain.setBounds(10 + 0, 0 + 50, 64, 48);
 	chan67Gain.setBounds((10 + 0) + 0, (0 + 50) + 50, 64, 48);
 
+	throughput.setBounds(10 + 70, 110 + 50, 104, 24);
 	chan23Toggle.setBounds(10 + 70, 0 + 10, 104, 24);
 	chan45Toggle.setBounds(10 + 70, 0 + 60, 104, 24);
 	chan67Toggle.setBounds((10 + 0) + 70, (0 + 60) + 50, 104, 24);
@@ -131,6 +146,10 @@ void Mini_routerAudioProcessorEditor::sliderValueChanged(Slider* sliderThatChang
 		int newChannel = static_cast<int>(sliderThatChanged->getValue());
 		std::cout << "slider val changed: " << newChannel << std::endl;
 		processor.setThroughChannel(newChannel);
+	}
+	else if (sliderThatChanged == &throughputGain)
+	{
+		processor.setChanGain(0, sliderThatChanged->getValue());
 	}
 	else if (sliderThatChanged == &chan23Gain)
 	{
@@ -176,6 +195,10 @@ void Mini_routerAudioProcessorEditor::buttonClicked(Button * buttonThatWasClicke
 	else if (buttonThatWasClicked == &chan67Toggle)
 	{
 		processor.toggleChannel(3, buttonThatWasClicked->getToggleStateValue().getValue());
+	}
+	else if (buttonThatWasClicked == &throughput)
+	{
+		processor.toggleChannel(0, buttonThatWasClicked->getToggleStateValue().getValue());
 	}
 
 	double as = processor.getTimeInPeriod();

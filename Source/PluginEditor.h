@@ -68,6 +68,9 @@ private:
 	Label textLabel;
 	Slider channelSlider;
 
+	ToggleButton throughput;
+	Slider throughputGain;
+
 	ToggleButton chan23Toggle;
 	Slider chan23Gain;
 	ToggleButton chan45Toggle;

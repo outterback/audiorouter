@@ -10,16 +10,18 @@
 
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include "ChannelIDs.h"
 #include <chrono>
 #include <cmath>
 #include "../JuceLibraryCode/JuceHeader.h"
+
 
 //==============================================================================
 Mini_routerAudioProcessor::Mini_routerAudioProcessor() 
 	: 
 	start(std::chrono::system_clock::now()), throughChannel(0),
-	channelGains({64, 64, 64}),
-	channelToggles({false, false, false})
+	channelGains({0.5, 0.5, 0.5, 0.5}),
+	channelToggles({true, false, false, false})
 	
 {
 	std::cout << std::endl;
@@ -54,15 +56,10 @@ int Mini_routerAudioProcessor::getTimeInPeriod()
 
 void Mini_routerAudioProcessor::toggleChannel(int channel, bool newState)
 {
-	if (channel < 1 || channel > 3)
-	{
-		std::cout << "cannot toggle channel " << channel << std::endl;
-		return;
-	}
 	std::cout << "chan: " << channel << " - " << newState << " new: ";
 	//bool old_val = !channelToggles[channel - 1];
-	channelToggles.set(channel - 1, newState);
-	std::cout << channelToggles[channel - 1] << std::endl;
+	channelToggles.set(channel, newState);
+	std::cout << channelToggles[channel] << std::endl;
 }
 
 Mini_routerAudioProcessor::~Mini_routerAudioProcessor()
@@ -191,52 +188,50 @@ void Mini_routerAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuf
     // This is here to avoid people getting screaming feedback
     // when they first compile a plugin, but obviously you don't need to keep
     // this code if your algorithm always overwrites all the output channels.
-    for (int i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
-        buffer.clear (i, 0, buffer.getNumSamples());
+	for (int i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
+	{
+		//std::cout << "CLEARING INPUTS " << i << std::endl;
+		buffer.clear(i, 0, buffer.getNumSamples());
+	}
 
     // This is the place where you'd normally do the guts of your plugin's
     // audio processing...
-	float* firstChannel = buffer.getWritePointer(0);
-	AudioBuffer<float> outputBuffer(4, numSamples);
-	outputBuffer.clear();
-
+	
 	//std::cout << "stats pre:" << std::endl;
 	//std::cout << " magn: " << buffer.getMagnitude(0, 0, numSamples);
 	//std::cout << " rms: " << buffer.getRMSLevel(0, 0, numSamples) << std::endl;
 	//std::cout << std::endl;
-	for (int channel = 1; channel <= 3; ++channel)
+	for (int channel = 0; channel <= 1; ++channel)
 	{
-		if (channelToggles[channel - 1])
+		const int left = (2 * channel);
+		const int right = (2 * channel + 1);
+		if (channelToggles[channel])
 		{
-			int left = (2 * channel);
-			int right = (2 * channel + 1);
-			double gain = channelGains[channel - 1];
-			const float* leftChanSource = buffer.getReadPointer(left);
-			const float* rightChanSource = buffer.getReadPointer(right);
-
-			outputBuffer.addFrom(0, 0, leftChanSource, numSamples, gain);
-			outputBuffer.addFrom(1, 0, rightChanSource, numSamples, gain);
-			std::cout << "process channel: " << channel << "  gain: " << gain << std::endl; 
-			std::cout << buffer.getRMSLevel(left, 0, numSamples) << "  " << buffer.getRMSLevel(right, 0, numSamples) << std::endl;
+			double gain = channelGains[channel];
+			std::cout << "gain chan " << channel << ": " << gain << std::endl;
+			buffer.applyGain(left, 0, numSamples, gain);
+			buffer.applyGain(right, 0, numSamples, gain);
+		}
+		else
+		{
+			buffer.clear(left, 0, numSamples);
+			buffer.clear(right, 0, numSamples);
 		}
 	}
-	std::cout << "outputbuffer:";
-	std::cout << outputBuffer.getRMSLevel(0, 0, numSamples) << "  " << buffer.getRMSLevel(1, 0, numSamples) << std::endl;
-	buffer.copyFrom(2, 0, outputBuffer.getReadPointer(0), numSamples);
-	buffer.copyFrom(3, 0, outputBuffer.getReadPointer(1), numSamples);
+	//std::cout << "outputbuffer:";
+	//std::cout << outputBuffer.getRMSLevel(0, 0, numSamples) << "  " << buffer.getRMSLevel(1, 0, numSamples) << std::endl;
+
+	//buffer.copyFrom(outputLeftChannel, 0, outputBuffer.getReadPointer(outputLeftChannel), numSamples);
+	//buffer.copyFrom(outputRightChannel, 0, outputBuffer.getReadPointer(outputRightChannel), numSamples);
 
 	
 }
 
 void Mini_routerAudioProcessor::setChanGain(int channel, double gain)
 {
-	if (channel < 1 || channel > 3)
-	{
-		std::cout << "cannot toggle channel " << channel << std::endl;
-		return;
-	}
-	channelGains.set(channel-1, gain/127.0);
-	std::cout << "new gain: " << channelGains[channel - 1] << std::endl;
+
+	channelGains.set(channel, gain/127.0);
+	std::cout << "new gain on chan " << channel << ": " << channelGains[channel] << std::endl;
 
 }
 
